@@ -34,3 +34,24 @@ app.include_router(applications.router, prefix=settings.API_V1_STR)
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/", tags=["Meta"])
+async def root_info() -> dict[str, object]:
+    base = settings.API_V1_STR
+    return {
+        "service": settings.PROJECT_NAME,
+        "status": "ok",
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "openapi": f"{base}/openapi.json",
+        "key_endpoints": [
+            {"method": "POST", "path": f"{base}/auth/register", "purpose": "Register recruiter user"},
+            {"method": "POST", "path": f"{base}/auth/login", "purpose": "Login and receive JWT token"},
+            {"method": "GET", "path": f"{base}/auth/me", "purpose": "Get current authenticated user"},
+            {"method": "GET", "path": f"{base}/candidates", "purpose": "List candidates"},
+            {"method": "GET", "path": f"{base}/jobs", "purpose": "List jobs"},
+            {"method": "GET", "path": f"{base}/applications", "purpose": "List job applications"},
+            {"method": "GET", "path": "/health", "purpose": "Health check"},
+        ],
+    }

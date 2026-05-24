@@ -10,9 +10,19 @@ from app.schemas.auth import RegisterRequest, TokenResponse, UserResponse
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest) -> UserResponse:
-    return build_user_response(email=payload.email, name=payload.name, role=payload.role)
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def register(payload: RegisterRequest) -> TokenResponse:
+    user = build_user_response(email=payload.email, name=payload.name, role=payload.role)
+    token = create_access_token(
+        subject=user.email,
+        extra_claims={
+            "email": user.email,
+            "name": user.name,
+            "role": user.role,
+            "created_at": user.created_at.isoformat(),
+        },
+    )
+    return TokenResponse(access_token=token, user=user)
 
 
 @router.post("/login", response_model=TokenResponse)
