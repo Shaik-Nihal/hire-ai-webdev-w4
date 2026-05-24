@@ -8,3 +8,15 @@ class JobResponse(BaseModel):
     role: str
     required_skills: str
     min_experience: int
+
+
+class JobCreate(BaseModel):
+    role: str
+    required_skills: str
+    min_experience: int
+
+
+class JobUpdate(BaseModel):
+    role: str | None = None
+    required_skills: str | None = None
+    min_experience: int | None = None

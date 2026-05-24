@@ -8,13 +8,15 @@ FastAPI backend for the HireAI Copilot recruitment platform.
 
 1. [Stack](#stack)
 2. [Project Structure](#project-structure)
-3. [Setup Instructions](#setup-instructions)
-4. [Running the Application](#running-the-application)
-5. [API Endpoints](#api-endpoints)
-6. [Authentication](#authentication)
-7. [Docker Deployment](#docker-deployment)
-8. [Database Migrations](#database-migrations)
-9. [Documentation](#documentation)
+3. [Week 1 and Week 2 Summary](#week-1-and-week-2-summary)
+4. [Setup Instructions](#setup-instructions)
+5. [Running the Application](#running-the-application)
+6. [API Endpoints](#api-endpoints)
+7. [Authentication](#authentication)
+8. [Verification Checklist](#verification-checklist)
+9. [Docker Deployment](#docker-deployment)
+10. [Database Migrations](#database-migrations)
+11. [Documentation](#documentation)
 
 ---
 
@@ -71,6 +73,30 @@ backend/
 ├── docker-compose.yml      # Multi-container Docker setup
 └── README.md               # This file
 ```
+
+---
+
+## Week 1 and Week 2 Summary
+
+### Week 1 (Baseline API)
+
+- Auth endpoints: `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
+- Read endpoints: `GET /api/candidates`, `GET /api/jobs`, `GET /api/applications`
+- Health check: `GET /health`
+- Docs: `/docs`, `/redoc`, `/api/openapi.json`
+
+### Week 2 (Auth + CRUD + Filtering)
+
+- `register` now returns a JWT (same format as login)
+- Bearer auth required for all candidates, jobs, applications endpoints
+- Added `POST` and `PATCH` for candidates, jobs, applications
+- Applications filtering: `GET /api/applications?job_id=...&status=...`
+- Swagger uses HTTP Bearer token paste in **Authorize**
+
+Middleware is live:
+- CORS
+- Request ID + process time headers
+- Custom exception handler
 
 ---
 
@@ -370,9 +396,9 @@ Base URL: `/api/auth`
 
 #### 1. POST `/api/auth/register`
 
-**Purpose**: Register a new recruiter account.
+**Purpose**: Register a new recruiter account and return a JWT.
 
-**Why it's needed**: Creates a new user in the system with email, name, and role.
+**Why it's needed**: Creates a user and immediately issues a token for protected routes.
 
 **Request Headers**:
 
@@ -408,11 +434,15 @@ curl -X POST http://127.0.0.1:8000/api/auth/register \
 
 ```json
 {
-  "id": 1,
-  "name": "John Recruiter",
-  "email": "john@company.com",
-  "role": "recruiter",
-  "created_at": "2026-05-20T10:30:00"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user": {
+    "id": 1,
+    "name": "John Recruiter",
+    "email": "john@company.com",
+    "role": "recruiter",
+    "created_at": "2026-05-20T10:30:00"
+  }
 }
 ```
 
@@ -556,7 +586,9 @@ Base URL: `/api/candidates`
 Authorization: Bearer <access_token>
 ```
 
-**Query Parameters**: None (currently)
+**Query Parameters** (optional):
+- `job_id`: Filter by job id
+- `status`: Filter by application status
 
 **cURL Example**:
 
@@ -602,6 +634,44 @@ curl http://127.0.0.1:8000/api/candidates \
 - `experience_years`: Years of professional experience
 - `education`: Educational background
 - `projects`: Summary of key projects and accomplishments
+
+---
+
+#### POST `/api/candidates`
+
+**Purpose**: Create a new candidate.
+
+**Request Body**:
+
+```json
+{
+  "name": "Alice Johnson",
+  "email": "alice@email.com",
+  "skills": "Python, FastAPI, Docker",
+  "experience_years": 5,
+  "education": "B.S. Computer Science",
+  "projects": "Built 3 production microservices"
+}
+```
+
+**Response**: Candidate record
+
+---
+
+#### PATCH `/api/candidates/{candidate_id}`
+
+**Purpose**: Update candidate fields.
+
+**Request Body** (partial update):
+
+```json
+{
+  "skills": "Python, FastAPI, Docker, PostgreSQL",
+  "experience_years": 6
+}
+```
+
+**Response**: Updated candidate record
 
 ---
 
@@ -669,6 +739,40 @@ curl http://127.0.0.1:8000/api/jobs \
 
 ---
 
+#### POST `/api/jobs`
+
+**Purpose**: Create a new job.
+
+**Request Body**:
+
+```json
+{
+  "role": "Backend Engineer",
+  "required_skills": "Python, FastAPI, PostgreSQL",
+  "min_experience": 3
+}
+```
+
+**Response**: Job record
+
+---
+
+#### PATCH `/api/jobs/{job_id}`
+
+**Purpose**: Update job fields.
+
+**Request Body** (partial update):
+
+```json
+{
+  "required_skills": "Python, FastAPI, PostgreSQL, Docker"
+}
+```
+
+**Response**: Updated job record
+
+---
+
 ### Applications Endpoints
 
 Base URL: `/api/applications`
@@ -694,6 +798,13 @@ Authorization: Bearer <access_token>
 ```bash
 curl http://127.0.0.1:8000/api/applications \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+**Filtered Example**:
+
+```bash
+curl "http://127.0.0.1:8000/api/applications?job_id=1&status=pending" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
 ```
 
 **Response** (200 OK):
@@ -737,11 +848,46 @@ curl http://127.0.0.1:8000/api/applications \
 
 ---
 
+#### POST `/api/applications`
+
+**Purpose**: Create a new application.
+
+**Request Body**:
+
+```json
+{
+  "candidate_id": 1,
+  "job_id": 1,
+  "status": "pending",
+  "application_date": "2026-05-18T14:30:00"
+}
+```
+
+**Response**: Application record
+
+---
+
+#### PATCH `/api/applications/{application_id}`
+
+**Purpose**: Update application fields.
+
+**Request Body** (partial update):
+
+```json
+{
+  "status": "accepted"
+}
+```
+
+**Response**: Updated application record
+
+---
+
 ## Authentication
 
 ### How JWT Authentication Works
 
-1. **Login**: User logs in with email and password via `/api/auth/login`
+1. **Register or Login**: User registers via `/api/auth/register` or logs in via `/api/auth/login`
 2. **Token Generation**: Server returns a JWT access token
 3. **Token Storage**: Client stores the token (usually in browser localStorage or sessionStorage)
 4. **Authenticated Requests**: Client includes token in the `Authorization` header for protected endpoints
@@ -760,6 +906,16 @@ Authorization: Bearer <your_access_token_here>
 ```bash
 curl http://127.0.0.1:8000/api/candidates \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyZWNydWl0ZXJAaGlyZWFpLmNvbSIsImVtYWlsIjoicmVjcnVpdGVyQGhpcmVhaS5jb20iLCJuYW1lIjoiUmVjcnVpdGVyIFVzZXIiLCJyb2xlIjoicmVjcnVpdGVyIn0.ABC123..."
+
+### Swagger UI Authorize
+
+Swagger uses HTTP Bearer auth. Paste the token in the **Authorize** dialog:
+
+```
+Bearer <access_token>
+```
+
+All `/api/candidates`, `/api/jobs`, and `/api/applications` routes require a Bearer token.
 ```
 
 ### Token Expiration
@@ -767,6 +923,72 @@ curl http://127.0.0.1:8000/api/candidates \
 - **Default Expiration**: 60 minutes (configurable via `ACCESS_TOKEN_EXPIRE_MINUTES` in `.env`)
 - **After Expiration**: Token becomes invalid and user must login again
 - **Response**: `401 Unauthorized` if token is expired
+
+---
+
+## Verification Checklist
+
+### 1) Health Check
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+### 2) Register and Login
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test User","email":"test@example.com","password":"admin123","role":"recruiter"}'
+
+curl -X POST http://127.0.0.1:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"recruiter@hireai.com","password":"admin123"}'
+```
+
+Both should return `access_token` and `token_type`.
+
+### 3) Verify Token
+
+```bash
+curl http://127.0.0.1:8000/api/auth/me \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### 4) Protected Endpoints
+
+```bash
+curl http://127.0.0.1:8000/api/candidates \
+  -H "Authorization: Bearer <access_token>"
+
+curl http://127.0.0.1:8000/api/jobs \
+  -H "Authorization: Bearer <access_token>"
+
+curl http://127.0.0.1:8000/api/applications \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### 5) Filtering
+
+```bash
+curl "http://127.0.0.1:8000/api/applications?job_id=1&status=pending" \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### 6) Negative Tests
+
+```bash
+# Missing token
+curl -i http://127.0.0.1:8000/api/jobs
+
+# Invalid token
+curl -i http://127.0.0.1:8000/api/jobs \
+  -H "Authorization: Bearer badtoken"
+```
+
+Expected: `403` for missing token, `401` for invalid token.
+
+Note: Candidates/jobs/applications require a reachable database. If the DB is down or blocked, these endpoints will time out.
 
 ---
 

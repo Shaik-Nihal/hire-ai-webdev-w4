@@ -9,3 +9,17 @@ class ApplicationResponse(BaseModel):
     job_id: int
     status: str
     application_date: str
+
+
+class ApplicationCreate(BaseModel):
+    candidate_id: int
+    job_id: int
+    status: str
+    application_date: str
+
+
+class ApplicationUpdate(BaseModel):
+    candidate_id: int | None = None
+    job_id: int | None = None
+    status: str | None = None
+    application_date: str | None = None
