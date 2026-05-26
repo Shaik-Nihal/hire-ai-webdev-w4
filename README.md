@@ -9,14 +9,23 @@ FastAPI backend for the HireAI Copilot recruitment platform.
 1. [Stack](#stack)
 2. [Project Structure](#project-structure)
 3. [Week 1 and Week 2 Summary](#week-1-and-week-2-summary)
-4. [Setup Instructions](#setup-instructions)
-5. [Running the Application](#running-the-application)
-6. [API Endpoints](#api-endpoints)
-7. [Authentication](#authentication)
-8. [Verification Checklist](#verification-checklist)
-9. [Docker Deployment](#docker-deployment)
-10. [Database Migrations](#database-migrations)
-11. [Documentation](#documentation)
+4. [Base URLs](#base-urls)
+5. [Setup Instructions](#setup-instructions)
+6. [Running the Application](#running-the-application)
+7. [API Endpoints](#api-endpoints)
+8. [Authentication](#authentication)
+9. [Verification Checklist](#verification-checklist)
+10. [Docker Deployment](#docker-deployment)
+11. [Database Migrations](#database-migrations)
+12. [Documentation](#documentation)
+
+---
+
+## Base URLs
+
+- Local: `http://127.0.0.1:8000`
+- Render: `https://hire-ai-webdev-w4.onrender.com`
+- Docs: `/docs`, `/redoc`, `/api/openapi.json`
 
 ---
 
@@ -364,6 +373,41 @@ deactivate
 
 ## API Endpoints
 
+### Root Metadata
+
+#### GET `/`
+
+**Purpose**: Provide service metadata and quick links to docs and key endpoints.
+
+**Why it's needed**: Helps verify the base URL and discover documentation from the frontend or health checks.
+
+**Request**:
+
+```bash
+curl http://127.0.0.1:8000/
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "service": "HireAI Copilot API",
+  "status": "ok",
+  "docs": "/docs",
+  "redoc": "/redoc",
+  "openapi": "/api/openapi.json",
+  "key_endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "purpose": "Login and receive JWT token"
+    }
+  ]
+}
+```
+
+---
+
 ### Health Check
 
 #### GET `/health`
@@ -481,14 +525,6 @@ Content-Type: application/json
 }
 ```
 
-**Alternative: Form Data**:
-
-```
-Content-Type: application/x-www-form-urlencoded
-
-username=recruiter@hireai.com&password=admin123
-```
-
 **cURL Example** (JSON):
 
 ```bash
@@ -498,13 +534,6 @@ curl -X POST http://127.0.0.1:8000/api/auth/login \
     "email": "recruiter@hireai.com",
     "password": "admin123"
   }'
-```
-
-**cURL Example** (Form Data):
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/auth/login \
-  -d "email=recruiter@hireai.com&password=admin123"
 ```
 
 **Response** (200 OK):
@@ -572,6 +601,12 @@ curl http://127.0.0.1:8000/api/auth/me \
 
 Base URL: `/api/candidates`
 
+All candidates endpoints require the Authorization header:
+
+```
+Authorization: Bearer <access_token>
+```
+
 ---
 
 #### GET `/api/candidates`
@@ -585,10 +620,6 @@ Base URL: `/api/candidates`
 ```
 Authorization: Bearer <access_token>
 ```
-
-**Query Parameters** (optional):
-- `job_id`: Filter by job id
-- `status`: Filter by application status
 
 **cURL Example**:
 
@@ -641,6 +672,8 @@ curl http://127.0.0.1:8000/api/candidates \
 
 **Purpose**: Create a new candidate.
 
+**Why it's needed**: Onboards candidates into the system for matching and application tracking.
+
 **Request Body**:
 
 ```json
@@ -662,6 +695,8 @@ curl http://127.0.0.1:8000/api/candidates \
 
 **Purpose**: Update candidate fields.
 
+**Why it's needed**: Keeps candidate profiles accurate as skills and experience change.
+
 **Request Body** (partial update):
 
 ```json
@@ -678,6 +713,12 @@ curl http://127.0.0.1:8000/api/candidates \
 ### Jobs Endpoints
 
 Base URL: `/api/jobs`
+
+All jobs endpoints require the Authorization header:
+
+```
+Authorization: Bearer <access_token>
+```
 
 ---
 
@@ -743,6 +784,8 @@ curl http://127.0.0.1:8000/api/jobs \
 
 **Purpose**: Create a new job.
 
+**Why it's needed**: Publishes a role so candidates can be matched and applications can be tracked.
+
 **Request Body**:
 
 ```json
@@ -761,6 +804,8 @@ curl http://127.0.0.1:8000/api/jobs \
 
 **Purpose**: Update job fields.
 
+**Why it's needed**: Keeps job requirements current as roles evolve.
+
 **Request Body** (partial update):
 
 ```json
@@ -777,6 +822,12 @@ curl http://127.0.0.1:8000/api/jobs \
 
 Base URL: `/api/applications`
 
+All applications endpoints require the Authorization header:
+
+```
+Authorization: Bearer <access_token>
+```
+
 ---
 
 #### GET `/api/applications`
@@ -791,20 +842,22 @@ Base URL: `/api/applications`
 Authorization: Bearer <access_token>
 ```
 
-**Query Parameters**: None (currently)
+**Query Parameters** (optional):
+- `job_id`: Filter applications for a specific job
+- `status`: Filter by application status (pending, accepted, rejected)
 
 **cURL Example**:
 
 ```bash
 curl http://127.0.0.1:8000/api/applications \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
 
 **Filtered Example**:
 
 ```bash
 curl "http://127.0.0.1:8000/api/applications?job_id=1&status=pending" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
 ```
 
 **Response** (200 OK):
@@ -852,6 +905,8 @@ curl "http://127.0.0.1:8000/api/applications?job_id=1&status=pending" \
 
 **Purpose**: Create a new application.
 
+**Why it's needed**: Links a candidate to a job and starts the application workflow.
+
 **Request Body**:
 
 ```json
@@ -870,6 +925,8 @@ curl "http://127.0.0.1:8000/api/applications?job_id=1&status=pending" \
 #### PATCH `/api/applications/{application_id}`
 
 **Purpose**: Update application fields.
+
+**Why it's needed**: Tracks status changes (pending, accepted, rejected) over time.
 
 **Request Body** (partial update):
 
@@ -906,6 +963,7 @@ Authorization: Bearer <your_access_token_here>
 ```bash
 curl http://127.0.0.1:8000/api/candidates \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyZWNydWl0ZXJAaGlyZWFpLmNvbSIsImVtYWlsIjoicmVjcnVpdGVyQGhpcmVhaS5jb20iLCJuYW1lIjoiUmVjcnVpdGVyIFVzZXIiLCJyb2xlIjoicmVjcnVpdGVyIn0.ABC123..."
+```
 
 ### Swagger UI Authorize
 
@@ -916,7 +974,6 @@ Bearer <access_token>
 ```
 
 All `/api/candidates`, `/api/jobs`, and `/api/applications` routes require a Bearer token.
-```
 
 ### Token Expiration
 

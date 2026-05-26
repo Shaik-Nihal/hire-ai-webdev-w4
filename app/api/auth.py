@@ -1,11 +1,10 @@
 from datetime import UTC, datetime
-from json import JSONDecodeError
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import settings
 from app.core.security import build_user_response, create_access_token, get_current_user, verify_login_credentials
-from app.schemas.auth import RegisterRequest, TokenResponse, UserResponse
+from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -26,27 +25,9 @@ async def register(payload: RegisterRequest) -> TokenResponse:
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: Request) -> TokenResponse:
-    content_type = request.headers.get("content-type", "")
-
-    email: str | None = None
-    password: str | None = None
-
-    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
-        form = await request.form()
-        email = form.get("username") or form.get("email")
-        password = form.get("password")
-    else:
-        try:
-            payload = await request.json()
-        except JSONDecodeError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid login payload") from exc
-
-        email = payload.get("email")
-        password = payload.get("password")
-
-    if not isinstance(email, str) or not isinstance(password, str):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email and password are required")
+async def login(payload: LoginRequest) -> TokenResponse:
+    email = payload.email
+    password = payload.password
 
     if not verify_login_credentials(email, password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
