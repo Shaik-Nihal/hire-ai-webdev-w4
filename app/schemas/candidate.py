@@ -1,4 +1,7 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.schemas.application import ApplicationResponse
+from app.schemas.score import ScoreResponse
 
 
 class CandidateResponse(BaseModel):
@@ -29,3 +32,8 @@ class CandidateUpdate(BaseModel):
     experience_years: int | None = None
     education: str | None = None
     projects: str | None = None
+
+
+class CandidateFullResponse(CandidateResponse):
+    applications: list[ApplicationResponse] = Field(default_factory=list)
+    scores: list[ScoreResponse] = Field(default_factory=list)

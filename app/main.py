@@ -48,8 +48,10 @@ async def root_info() -> dict[str, object]:
         "key_endpoints": [
             {"method": "POST", "path": f"{base}/auth/register", "purpose": "Register recruiter user"},
             {"method": "POST", "path": f"{base}/auth/login", "purpose": "Login and receive JWT token"},
+            {"method": "POST", "path": f"{base}/auth/refresh", "purpose": "Refresh access token"},
             {"method": "GET", "path": f"{base}/auth/me", "purpose": "Get current authenticated user"},
             {"method": "GET", "path": f"{base}/candidates", "purpose": "List candidates"},
+            {"method": "GET", "path": f"{base}/candidates/{{candidate_id}}/full", "purpose": "Candidate with applications and scores"},
             {"method": "GET", "path": f"{base}/jobs", "purpose": "List jobs"},
             {"method": "GET", "path": f"{base}/applications", "purpose": "List job applications"},
             {"method": "GET", "path": "/health", "purpose": "Health check"},

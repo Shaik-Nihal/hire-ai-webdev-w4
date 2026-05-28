@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = Field(default="change-me", min_length=8)
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 

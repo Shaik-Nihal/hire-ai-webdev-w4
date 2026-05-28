@@ -54,8 +54,17 @@ def test_login_returns_token(client):
     assert payload["user"]["email"] == "recruiter@hireai.com"
 
 
+def _auth_headers(client):
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "recruiter@hireai.com", "password": "admin123"},
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 def test_list_candidates_returns_seeded_data(client):
-    response = client.get("/api/candidates")
+    response = client.get("/api/candidates", headers=_auth_headers(client))
 
     assert response.status_code == 200
     payload = response.json()
@@ -64,7 +73,7 @@ def test_list_candidates_returns_seeded_data(client):
 
 
 def test_list_jobs_returns_seeded_data(client):
-    response = client.get("/api/jobs")
+    response = client.get("/api/jobs", headers=_auth_headers(client))
 
     assert response.status_code == 200
     payload = response.json()
