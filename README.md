@@ -8,7 +8,7 @@ FastAPI backend for the HireAI Copilot recruitment platform.
 
 1. [Stack](#stack)
 2. [Project Structure](#project-structure)
-3. [Week 1 and Week 2 Summary](#week-1-and-week-2-summary)
+3. [Week 1 through Week 3 Summary](#week-1-through-week-3-summary)
 4. [Base URLs](#base-urls)
 5. [Setup Instructions](#setup-instructions)
 6. [Running the Application](#running-the-application)
@@ -85,7 +85,7 @@ backend/
 
 ---
 
-## Week 1 and Week 2 Summary
+## Week 1 through Week 3 Summary
 
 ### Week 1 (Baseline API)
 
@@ -106,6 +106,14 @@ Middleware is live:
 - CORS
 - Request ID + process time headers
 - Custom exception handler
+
+### Week 3 (Filters + Pagination + RBAC + Token Refresh)
+
+- Candidate filters: `skills`, `min_score`, `max_score`, `job_id`
+- Pagination for candidates, jobs, and applications (`page`, `page_size`, `X-Total-Count` headers)
+- Candidate full details: `GET /api/candidates/{candidate_id}/full`
+- Refresh tokens: `POST /api/auth/refresh`
+- Role-based access control: `admin`/`recruiter` write, `viewer` read-only
 
 ---
 
@@ -461,6 +469,8 @@ Content-Type: application/json
 }
 ```
 
+**Role Options**: `admin`, `recruiter`, `viewer`
+
 **cURL Example**:
 
 ```bash
@@ -479,6 +489,7 @@ curl -X POST http://127.0.0.1:8000/api/auth/register \
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
   "user": {
     "id": 1,
@@ -541,6 +552,7 @@ curl -X POST http://127.0.0.1:8000/api/auth/login \
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
   "user": {
     "id": 1,
@@ -597,6 +609,51 @@ curl http://127.0.0.1:8000/api/auth/me \
 
 ---
 
+#### 4. POST `/api/auth/refresh`
+
+**Purpose**: Refresh an access token using a refresh token.
+
+**Why it's needed**: Keeps the session alive without re-entering credentials.
+
+**Request Body**:
+
+```json
+{
+  "refresh_token": "<refresh_token>"
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token>"}'
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user": {
+    "id": 1,
+    "name": "Recruiter User",
+    "email": "recruiter@hireai.com",
+    "role": "recruiter",
+    "created_at": "2026-01-01T00:00:00"
+  }
+}
+```
+
+**Status Codes**:
+- `200 OK`: Refresh successful
+- `401 Unauthorized`: Invalid refresh token
+
+---
+
 ### Candidates Endpoints
 
 Base URL: `/api/candidates`
@@ -606,6 +663,11 @@ All candidates endpoints require the Authorization header:
 ```
 Authorization: Bearer <access_token>
 ```
+
+Role access:
+
+- **Read**: `admin`, `recruiter`, `viewer`
+- **Write** (POST/PATCH): `admin`, `recruiter`
 
 ---
 
@@ -620,6 +682,15 @@ Authorization: Bearer <access_token>
 ```
 Authorization: Bearer <access_token>
 ```
+
+**Query Parameters** (optional):
+
+- `skills`: Comma-separated skills to match (example: `python,fastapi`)
+- `min_score`: Minimum score threshold (requires scores data)
+- `max_score`: Maximum score threshold (requires scores data)
+- `job_id`: Filter by score for a specific job
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
 
 **cURL Example**:
 
@@ -651,6 +722,14 @@ curl http://127.0.0.1:8000/api/candidates \
     "projects": "Created 5 full-stack web applications"
   }
 ]
+```
+
+**Response Headers**:
+
+```
+X-Total-Count: <total_records>
+X-Page: <current_page>
+X-Page-Size: <page_size>
 ```
 
 **Status Codes**:
@@ -710,6 +789,59 @@ curl http://127.0.0.1:8000/api/candidates \
 
 ---
 
+#### GET `/api/candidates/{candidate_id}/full`
+
+**Purpose**: Retrieve a candidate plus related applications and scores.
+
+**Why it's needed**: Gives the frontend a single call for candidate profile + match details.
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/candidates/1/full \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "candidate_id": 1,
+  "name": "Alice Johnson",
+  "email": "alice@email.com",
+  "skills": "Python, FastAPI, Docker, PostgreSQL",
+  "experience_years": 5,
+  "education": "B.S. Computer Science",
+  "projects": "Built 3 production microservices",
+  "applications": [
+    {
+      "application_id": 1,
+      "candidate_id": 1,
+      "job_id": 1,
+      "status": "pending",
+      "application_date": "2026-05-18T14:30:00"
+    }
+  ],
+  "scores": [
+    {
+      "candidate_id": 1,
+      "job_id": 1,
+      "score": 0.86,
+      "skills_match": 0.9,
+      "experience_score": 0.8,
+      "project_score": 0.88,
+      "label": "strong_match"
+    }
+  ]
+}
+```
+
+**Status Codes**:
+- `200 OK`: Candidate found
+- `404 Not Found`: Candidate does not exist
+
+---
+
 ### Jobs Endpoints
 
 Base URL: `/api/jobs`
@@ -719,6 +851,11 @@ All jobs endpoints require the Authorization header:
 ```
 Authorization: Bearer <access_token>
 ```
+
+Role access:
+
+- **Read**: `admin`, `recruiter`, `viewer`
+- **Write** (POST/PATCH): `admin`, `recruiter`
 
 ---
 
@@ -734,7 +871,10 @@ Authorization: Bearer <access_token>
 Authorization: Bearer <access_token>
 ```
 
-**Query Parameters**: None (currently)
+**Query Parameters** (optional):
+
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
 
 **cURL Example**:
 
@@ -766,6 +906,14 @@ curl http://127.0.0.1:8000/api/jobs \
     "min_experience": 3
   }
 ]
+```
+
+**Response Headers**:
+
+```
+X-Total-Count: <total_records>
+X-Page: <current_page>
+X-Page-Size: <page_size>
 ```
 
 **Status Codes**:
@@ -828,6 +976,11 @@ All applications endpoints require the Authorization header:
 Authorization: Bearer <access_token>
 ```
 
+Role access:
+
+- **Read**: `admin`, `recruiter`, `viewer`
+- **Write** (POST/PATCH): `admin`, `recruiter`
+
 ---
 
 #### GET `/api/applications`
@@ -845,6 +998,8 @@ Authorization: Bearer <access_token>
 **Query Parameters** (optional):
 - `job_id`: Filter applications for a specific job
 - `status`: Filter by application status (pending, accepted, rejected)
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
 
 **cURL Example**:
 
@@ -886,6 +1041,14 @@ curl "http://127.0.0.1:8000/api/applications?job_id=1&status=pending" \
     "application_date": "2026-05-16T11:45:00"
   }
 ]
+```
+
+**Response Headers**:
+
+```
+X-Total-Count: <total_records>
+X-Page: <current_page>
+X-Page-Size: <page_size>
 ```
 
 **Status Codes**:
@@ -981,6 +1144,17 @@ All `/api/candidates`, `/api/jobs`, and `/api/applications` routes require a Bea
 - **After Expiration**: Token becomes invalid and user must login again
 - **Response**: `401 Unauthorized` if token is expired
 
+### Refresh Tokens
+
+- **Refresh Token Lifetime**: Configurable via `REFRESH_TOKEN_EXPIRE_DAYS`
+- **How to Refresh**: Call `POST /api/auth/refresh` with `refresh_token`
+- **Result**: New access + refresh tokens are returned
+
+### Role-Based Access Control (RBAC)
+
+- **Read access**: `admin`, `recruiter`, `viewer`
+- **Write access** (POST/PATCH): `admin`, `recruiter`
+
 ---
 
 ## Verification Checklist
@@ -1003,7 +1177,7 @@ curl -X POST http://127.0.0.1:8000/api/auth/login \
   -d '{"email":"recruiter@hireai.com","password":"admin123"}'
 ```
 
-Both should return `access_token` and `token_type`.
+Both should return `access_token`, `refresh_token`, and `token_type`.
 
 ### 3) Verify Token
 
@@ -1025,14 +1199,32 @@ curl http://127.0.0.1:8000/api/applications \
   -H "Authorization: Bearer <access_token>"
 ```
 
-### 5) Filtering
+### 5) Filtering and Pagination
 
 ```bash
 curl "http://127.0.0.1:8000/api/applications?job_id=1&status=pending" \
   -H "Authorization: Bearer <access_token>"
+
+curl "http://127.0.0.1:8000/api/candidates?skills=python,fastapi&page=1&page_size=20" \
+  -H "Authorization: Bearer <access_token>"
 ```
 
-### 6) Negative Tests
+### 6) Candidate Full Profile
+
+```bash
+curl http://127.0.0.1:8000/api/candidates/1/full \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### 7) Refresh Token
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token":"<refresh_token>"}'
+```
+
+### 8) Negative Tests
 
 ```bash
 # Missing token
