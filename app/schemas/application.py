@@ -23,3 +23,11 @@ class ApplicationUpdate(BaseModel):
     job_id: int | None = None
     status: str | None = None
     application_date: str | None = None
+
+class ApplicationStatusUpdate(BaseModel):
+    status: str
+
+
+class ApplicationBulkUpdate(BaseModel):
+    application_ids: list[int]
+    status: str

@@ -85,7 +85,7 @@ backend/
 
 ---
 
-## Week 1 through Week 3 Summary
+## Week 1 through Week 4 Summary
 
 ### Week 1 (Baseline API)
 
@@ -114,6 +114,11 @@ Middleware is live:
 - Candidate full details: `GET /api/candidates/{candidate_id}/full`
 - Refresh tokens: `POST /api/auth/refresh`
 - Role-based access control: `admin`/`recruiter` write, `viewer` read-only
+
+### Week 4 (Kanban Integration + Bulk Actions)
+
+- Status updates: `PATCH /api/applications/{application_id}/status` connected to W1's Kanban; status changes persist end-to-end
+- Bulk updates: `PATCH /api/applications/bulk`
 
 ---
 
@@ -1100,6 +1105,49 @@ X-Page-Size: <page_size>
 ```
 
 **Response**: Updated application record
+
+---
+
+#### PATCH `/api/applications/{application_id}/status`
+
+**Purpose**: Update only the status of a specific job application.
+
+**Why it's needed**: Connects to the Kanban board view for moving applications from one stage (e.g., pending) to another (e.g., accepted, rejected) and persists the state.
+
+**Request Body**:
+
+```json
+{
+  "status": "accepted"
+}
+```
+
+**Response** (200 OK): Updated application record
+
+---
+
+#### PATCH `/api/applications/bulk`
+
+**Purpose**: Perform bulk updates on multiple applications.
+
+**Why it's needed**: Allows recruiters to perform bulk actions (e.g. changing status for multiple selected candidates at once).
+
+**Request Body**:
+
+```json
+{
+  "application_ids": [1, 2, 3],
+  "status": "accepted"
+}
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "updated_count": 3
+}
+```
 
 ---
 

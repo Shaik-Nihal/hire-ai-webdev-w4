@@ -6,7 +6,13 @@ from app.core.security import require_roles
 from app.db.session import get_db
 from app.models.application import Application
 from app.schemas.auth import UserResponse
-from app.schemas.application import ApplicationCreate, ApplicationResponse, ApplicationUpdate
+from app.schemas.application import (
+    ApplicationCreate,
+    ApplicationResponse,
+    ApplicationUpdate,
+    ApplicationStatusUpdate,
+    ApplicationBulkUpdate,
+)
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
 
@@ -57,6 +63,25 @@ async def create_application(
     await db.refresh(application)
     return application
 
+@router.patch("/bulk", response_model=dict)
+async def bulk_update_applications(
+    payload: ApplicationBulkUpdate,
+    current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
+    db: AsyncSession = Depends(get_db),
+):
+    if not payload.application_ids:
+        return {"updated_count": 0}
+
+    result = await db.execute(select(Application).where(Application.application_id.in_(payload.application_ids)))
+    applications = result.scalars().all()
+    
+    for app in applications:
+        app.status = payload.status
+        
+    await db.commit()
+    return {"updated_count": len(applications)}
+
+
 
 @router.patch("/{application_id}", response_model=ApplicationResponse)
 async def update_application(
@@ -77,3 +102,22 @@ async def update_application(
     await db.commit()
     await db.refresh(application)
     return application
+
+
+@router.patch("/{application_id}/status", response_model=ApplicationResponse)
+async def update_application_status(
+    application_id: int,
+    payload: ApplicationStatusUpdate,
+    current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
+    db: AsyncSession = Depends(get_db),
+) -> Application:
+    result = await db.execute(select(Application).where(Application.application_id == application_id))
+    application = result.scalar_one_or_none()
+    if application is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    application.status = payload.status
+    await db.commit()
+    await db.refresh(application)
+    return application
+
