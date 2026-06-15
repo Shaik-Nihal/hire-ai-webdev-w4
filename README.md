@@ -8,11 +8,7 @@ FastAPI backend for the HireAI Copilot recruitment platform.
 
 1. [Stack](#stack)
 2. [Project Structure](#project-structure)
-<<<<<<< HEAD
-3. [Week 1 through Week 3 Summary](#week-1-through-week-3-summary)
-=======
-3. [Week 1 through Week 5 Summary](#week-1-through-week-5-summary)
->>>>>>> 679b5c1 (week 5 implementation)
+3. [Week 1 through Week 6 Summary](#week-1-through-week-6-summary)
 4. [Base URLs](#base-urls)
 5. [Setup Instructions](#setup-instructions)
 6. [Running the Application](#running-the-application)
@@ -89,11 +85,7 @@ backend/
 
 ---
 
-<<<<<<< HEAD
-## Week 1 through Week 4 Summary
-=======
-## Week 1 through Week 5 Summary
->>>>>>> 679b5c1 (week 5 implementation)
+## Week 1 through Week 6 Summary
 
 ### Week 1 (Baseline API)
 
@@ -123,20 +115,18 @@ Middleware is live:
 - Refresh tokens: `POST /api/auth/refresh`
 - Role-based access control: `admin`/`recruiter` write, `viewer` read-only
 
-<<<<<<< HEAD
-### Week 4 (Kanban Integration + Bulk Actions)
+### Week 4 (Kanban Integration & Bulk Actions)
 
-- Status updates: `PATCH /api/applications/{application_id}/status` connected to W1's Kanban; status changes persist end-to-end
-- Bulk updates: `PATCH /api/applications/bulk`
-=======
+- **Status Updates:** Added `PATCH /api/applications/{application_id}/status` connected to Kanban; status changes persist end-to-end.
+- **Bulk Updates:** Added `PATCH /api/applications/bulk` for updating multiple applications.
+
 ### Week 5 (Performance, Testing & OpenAPI Documentation)
 
 - **Unit Testing Pass:** Reached **85% statement coverage** across the application. Added comprehensive unit tests in [test_week5_endpoints.py](file:///n:/Skillvance/backend/app/tests/test_week5_endpoints.py) verifying all authentication flows, CRUD operations, permission checks, filters, and pagination.
-- **Connection Pooling:** Shifted database connection to Port `5432` (session pooling mode) to enable native prepared statements and implemented optimized client-side pooling settings in [session.py](file:///n:/Skillvance/backend/app/db/session.py) (`pool_size=10`, `max_overflow=20`, `pool_recycle=1800`, `pool_timeout=30`, `pool_pre_ping=True`).
+- **Connection Pooling:** Shifted database connection to Port `5432` (session pooling mode) to enable prepared statements compatibility and implemented optimized client-side pooling settings in [session.py](file:///n:/Skillvance/backend/app/db/session.py) (`pool_size=10`, `max_overflow=20`, `pool_recycle=1800`, `pool_timeout=30`, `pool_pre_ping=True`).
 - **Indexes Verification & Deduplication:** Added database primary keys to all tables, unique email constraint on `candidates(email)` after cleaning up duplicates, and filtering index on `applications(status)`.
 - **N+1 Query Elimination:** Verified that candidate relations load efficiently via `selectinload` optimization for candidates' applications and scores.
 - **API Documentation Pass:** Added detailed docstrings to all API endpoints, which are automatically parsed by FastAPI to provide extensive documentation in Swagger UI (`/docs`).
->>>>>>> 679b5c1 (week 5 implementation)
 
 ### Week 6 (Missing Endpoint Implementation & Enhancements)
 
