@@ -43,6 +43,8 @@ def do_run_migrations(connection: Connection) -> None:
     existing_tables = set(inspector.get_table_names())
 
     if not inspector.has_table("alembic_version") and existing_tables.intersection(APP_TABLES):
+        # DB was seeded without Alembic – bootstrap the version table and stamp
+        # at the initial revision so that only new migrations are applied.
         connection.execute(
             text(
                 """
@@ -57,7 +59,8 @@ def do_run_migrations(connection: Connection) -> None:
             text("INSERT INTO alembic_version (version_num) VALUES (:revision)"),
             {"revision": INITIAL_REVISION},
         )
-        return
+        connection.commit()
+        # Fall through to apply any migrations after 0001_initial
 
     context.configure(connection=connection, target_metadata=target_metadata)
 
