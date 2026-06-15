@@ -28,6 +28,11 @@ def _build_claims(user: UserResponse) -> dict[str, str]:
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest) -> TokenResponse:
+    """
+    Register a new recruiter/administrator account.
+    
+    Generates a secure access token and refresh token upon successful registration.
+    """
     user = build_user_response(email=payload.email, name=payload.name, role=payload.role)
     claims = _build_claims(user)
     token = create_access_token(subject=user.email, extra_claims=claims)
@@ -37,6 +42,11 @@ async def register(payload: RegisterRequest) -> TokenResponse:
 
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest) -> TokenResponse:
+    """
+    Authenticate credentials and obtain access and refresh tokens.
+    
+    Validates user credentials and issues a JSON Web Token (JWT) to access protected API endpoints.
+    """
     email = payload.email
     password = payload.password
 
@@ -56,6 +66,11 @@ async def login(payload: LoginRequest) -> TokenResponse:
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(payload: RefreshTokenRequest) -> TokenResponse:
+    """
+    Refresh an expired access token using a valid refresh token.
+    
+    Validates the refresh token and returns a fresh access token along with a new refresh token.
+    """
     token_payload = decode_token_payload(payload.refresh_token, detail="Invalid refresh token")
     if token_payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
@@ -69,4 +84,9 @@ async def refresh_access_token(payload: RefreshTokenRequest) -> TokenResponse:
 
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
+    """
+    Retrieve profile details of the currently authenticated user.
+    
+    Requires a valid JWT bearer token in the Authorization header.
+    """
     return current_user

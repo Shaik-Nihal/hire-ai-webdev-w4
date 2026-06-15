@@ -19,6 +19,12 @@ async def list_jobs(
     page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> list[Job]:
+    """
+    Retrieve a paginated list of job listings.
+    
+    Returns basic job details like role, required skills, and min experience.
+    Pagination headers `X-Total-Count`, `X-Page`, and `X-Page-Size` are returned in the response.
+    """
     total = await db.scalar(select(func.count()).select_from(Job))
     response.headers["X-Total-Count"] = str(total or 0)
     response.headers["X-Page"] = str(page)
@@ -35,6 +41,11 @@ async def create_job(
     current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
     db: AsyncSession = Depends(get_db),
 ) -> Job:
+    """
+    Create a new job listing.
+    
+    Requires 'admin' or 'recruiter' roles. Defines role title, required skills, and min experience.
+    """
     job = Job(**payload.model_dump())
     db.add(job)
     await db.commit()
@@ -49,6 +60,11 @@ async def update_job(
     current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
     db: AsyncSession = Depends(get_db),
 ) -> Job:
+    """
+    Partially update an existing job listing's details.
+    
+    Requires 'admin' or 'recruiter' roles. Updates only fields provided in request body.
+    """
     result = await db.execute(select(Job).where(Job.job_id == job_id))
     job = result.scalar_one_or_none()
     if job is None:

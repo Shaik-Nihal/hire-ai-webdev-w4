@@ -27,6 +27,12 @@ async def list_applications(
     page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> list[Application]:
+    """
+    Retrieve a paginated list of job applications.
+    
+    Supports filtering by job ID, application status, and custom pagination.
+    Pagination headers `X-Total-Count`, `X-Page`, and `X-Page-Size` are returned in the response.
+    """
     filters = []
     if job_id is not None:
         filters.append(Application.job_id == job_id)
@@ -57,6 +63,11 @@ async def create_application(
     current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
     db: AsyncSession = Depends(get_db),
 ) -> Application:
+    """
+    Create a new job application.
+    
+    Requires 'admin' or 'recruiter' roles. Connects a candidate to a job with a status and date.
+    """
     application = Application(**payload.model_dump())
     db.add(application)
     await db.commit()
@@ -90,6 +101,11 @@ async def update_application(
     current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
     db: AsyncSession = Depends(get_db),
 ) -> Application:
+    """
+    Partially update an existing job application.
+    
+    Requires 'admin' or 'recruiter' roles. Updates only fields provided in request body.
+    """
     result = await db.execute(select(Application).where(Application.application_id == application_id))
     application = result.scalar_one_or_none()
     if application is None:

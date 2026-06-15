@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
 
     DATABASE_URL: str = Field(..., min_length=1)
+    DATABASE_POOL_SIZE: int = 10
+    DATABASE_MAX_OVERFLOW: int = 20
+    DATABASE_POOL_RECYCLE: int = 1800
+    DATABASE_POOL_TIMEOUT: int = 30
 
     AUTH_LOGIN_EMAIL: str = "recruiter@hireai.com"
     AUTH_LOGIN_PASSWORD: str = "admin123"

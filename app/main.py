@@ -11,6 +11,8 @@ from app.core.middleware import setup_middleware
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     yield
+    from app.db.session import engine
+    await engine.dispose()
 
 
 app = FastAPI(

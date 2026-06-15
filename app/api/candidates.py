@@ -25,6 +25,12 @@ async def list_candidates(
     page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ) -> list[Candidate]:
+    """
+    Retrieve a paginated list of candidates.
+    
+    Supports filtering by comma-separated skills, min/max matching score, job ID, and custom pagination.
+    Pagination headers `X-Total-Count`, `X-Page`, and `X-Page-Size` are returned in the response.
+    """
     filters = []
 
     skill_tokens = [token.strip() for token in skills.split(",")] if skills else []
@@ -68,6 +74,11 @@ async def create_candidate(
     current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
     db: AsyncSession = Depends(get_db),
 ) -> Candidate:
+    """
+    Onboard and create a new candidate.
+    
+    Requires 'admin' or 'recruiter' roles. Creates candidate profile with basic details.
+    """
     candidate = Candidate(**payload.model_dump())
     db.add(candidate)
     await db.commit()
@@ -82,6 +93,11 @@ async def update_candidate(
     current_user: UserResponse = Depends(require_roles("admin", "recruiter")),
     db: AsyncSession = Depends(get_db),
 ) -> Candidate:
+    """
+    Partially update an existing candidate's profile.
+    
+    Requires 'admin' or 'recruiter' roles. Updates only fields provided in request body.
+    """
     result = await db.execute(select(Candidate).where(Candidate.candidate_id == candidate_id))
     candidate = result.scalar_one_or_none()
     if candidate is None:
@@ -102,6 +118,11 @@ async def get_candidate_full(
     current_user: UserResponse = Depends(require_roles("admin", "recruiter", "viewer")),
     db: AsyncSession = Depends(get_db),
 ) -> Candidate:
+    """
+    Retrieve full candidate profile including applications and scores.
+    
+    Performs optimized relationship loading to prevent N+1 query patterns.
+    """
     stmt = (
         select(Candidate)
         .where(Candidate.candidate_id == candidate_id)
