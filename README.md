@@ -678,6 +678,39 @@ curl -X POST http://127.0.0.1:8000/api/auth/refresh \
 
 ---
 
+#### 5. POST `/api/auth/logout`
+
+**Purpose**: Logout the current authenticated user.
+
+**Why it's needed**: Informs the system that the user wants to terminate their session. Note that because JWT tokens are stateless, the client must discard the token locally.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/auth/logout \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+**Status Codes**:
+- `200 OK`: Logout successful
+- `401 Unauthorized`: Invalid or missing token
+
+---
+
 ### Candidates Endpoints
 
 Base URL: `/api/candidates`
@@ -794,11 +827,113 @@ X-Page-Size: <page_size>
 
 ---
 
+#### GET `/api/candidates/{candidate_id}`
+
+**Purpose**: Retrieve a single candidate's profile by ID.
+
+**Why it's needed**: Displays a detailed view of a single candidate's information. Excludes soft-deleted candidates.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/candidates/1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "candidate_id": 1,
+  "name": "Alice Johnson",
+  "email": "alice@email.com",
+  "skills": "Python, FastAPI, Docker, PostgreSQL",
+  "experience_years": 5,
+  "education": "B.S. Computer Science",
+  "projects": "Built 3 production microservices",
+  "status": "shortlisted",
+  "resume_path": "uploads/resumes/a1b2.pdf"
+}
+```
+
+**Status Codes**:
+- `200 OK`: Candidate retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+- `404 Not Found`: Candidate not found or is soft-deleted
+
+---
+
+#### PUT `/api/candidates/{candidate_id}`
+
+**Purpose**: Fully replace a candidate's profile.
+
+**Why it's needed**: Updates all fields of a candidate's profile in a single request. Every field must be supplied.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body**:
+
+```json
+{
+  "name": "Alice Johnson",
+  "email": "alice@email.com",
+  "skills": "Python, FastAPI, Kubernetes, AWS",
+  "experience_years": 6,
+  "education": "B.S. Computer Science",
+  "projects": "Built 4 production microservices"
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X PUT http://127.0.0.1:8000/api/candidates/1 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Alice Johnson",
+    "email": "alice@email.com",
+    "skills": "Python, FastAPI, Kubernetes, AWS",
+    "experience_years": 6,
+    "education": "B.S. Computer Science",
+    "projects": "Built 4 production microservices"
+  }'
+```
+
+**Response** (200 OK): Updated candidate record
+
+**Status Codes**:
+- `200 OK`: Candidate updated successfully
+- `400 Bad Request`: Invalid body data
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Candidate not found or is soft-deleted
+
+---
+
 #### PATCH `/api/candidates/{candidate_id}`
 
 **Purpose**: Update candidate fields.
 
-**Why it's needed**: Keeps candidate profiles accurate as skills and experience change.
+**Why it's needed**: Keeps candidate profiles accurate as skills and experience change. Only updates fields provided in the request body.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
 
 **Request Body** (partial update):
 
@@ -809,7 +944,98 @@ X-Page-Size: <page_size>
 }
 ```
 
-**Response**: Updated candidate record
+**cURL Example**:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/candidates/1 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"skills": "Python, FastAPI, Docker, PostgreSQL", "experience_years": 6}'
+```
+
+**Response** (200 OK): Updated candidate record
+
+**Status Codes**:
+- `200 OK`: Candidate updated successfully
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Candidate not found or is soft-deleted
+
+---
+
+#### DELETE `/api/candidates/{candidate_id}`
+
+**Purpose**: Soft-delete a candidate.
+
+**Why it's needed**: Allows removing a candidate from standard list/get responses while preserving historical data. Requires `admin` role.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl -X DELETE http://127.0.0.1:8000/api/candidates/1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "message": "Candidate deleted successfully"
+}
+```
+
+**Status Codes**:
+- `200 OK`: Candidate soft-deleted successfully
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` role)
+- `404 Not Found`: Candidate not found or is already soft-deleted
+
+---
+
+#### PATCH `/api/candidates/{candidate_id}/status`
+
+**Purpose**: Update the lifecycle status of a single candidate.
+
+**Why it's needed**: Connects to the recruiting stages in the client app. Valid statuses: `new`, `screening`, `interviewing`, `shortlisted`, `selected`, `rejected`.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body**:
+
+```json
+{
+  "status": "shortlisted"
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/candidates/1/status \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "shortlisted"}'
+```
+
+**Response** (200 OK): Updated candidate record
+
+**Status Codes**:
+- `200 OK`: Status updated successfully
+- `400 Bad Request`: Invalid status value
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Candidate not found or is soft-deleted
 
 ---
 
@@ -863,6 +1089,336 @@ curl http://127.0.0.1:8000/api/candidates/1/full \
 **Status Codes**:
 - `200 OK`: Candidate found
 - `404 Not Found`: Candidate does not exist
+
+---
+
+#### PATCH `/api/candidates/bulk-status`
+
+**Purpose**: Update the lifecycle status of multiple candidates at once.
+
+**Why it's needed**: Enables bulk processing of candidates (e.g. bulk screening, selecting, or rejecting).
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body**:
+
+```json
+{
+  "candidate_ids": [1, 2, 3],
+  "status": "screening"
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/candidates/bulk-status \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"candidate_ids": [1, 2, 3], "status": "screening"}'
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "updated_count": 3
+}
+```
+
+**Status Codes**:
+- `200 OK`: Statuses updated successfully
+- `400 Bad Request`: Invalid status value or payload structure
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+
+---
+
+#### PATCH `/api/candidates/bulk-assign-job`
+
+**Purpose**: Assign multiple candidates to a job.
+
+**Why it's needed**: Speeds up the workflow by allowing recruiters to associate several candidates with a role at once. Skips duplicate assignments automatically.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body**:
+
+```json
+{
+  "candidate_ids": [1, 2],
+  "job_id": 1
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/candidates/bulk-assign-job \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"candidate_ids": [1, 2], "job_id": 1}'
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "created_applications": 2
+}
+```
+
+**Status Codes**:
+- `200 OK`: Candidates assigned successfully
+- `400 Bad Request`: Invalid payload structure
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+
+---
+
+#### POST `/api/candidates/{candidate_id}/notes`
+
+**Purpose**: Add a recruiter note to a candidate.
+
+**Why it's needed**: Allows recruiters to leave feedback, interview reports, or custom notes on a candidate's profile.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body**:
+
+```json
+{
+  "note": "Strong performance in technical interview"
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/candidates/1/notes \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"note": "Strong performance in technical interview"}'
+```
+
+**Response** (201 Created):
+
+```json
+{
+  "note_id": 1,
+  "candidate_id": 1,
+  "author": "recruiter@hireai.com",
+  "note": "Strong performance in technical interview",
+  "created_at": "2026-06-15T14:30:00Z"
+}
+```
+
+**Status Codes**:
+- `201 Created`: Note created successfully
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Candidate not found or is soft-deleted
+
+---
+
+#### POST `/api/candidates/{candidate_id}/resume`
+
+**Purpose**: Upload a resume file for a candidate.
+
+**Why it's needed**: Allows recruiters to upload candidate resume files. Supports `pdf`, `doc`, and `docx` formats. Files are saved in `uploads/resumes/` locally.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+```
+
+**Request Body** (Form Data):
+- `file`: Resume file binary
+
+**cURL Example**:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/candidates/1/resume \
+  -H "Authorization: Bearer <access_token>" \
+  -F "file=@/path/to/resume.pdf"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "file_name": "a1b2c3d4e5f6g7h8.pdf",
+  "url": "/uploads/resumes/a1b2c3d4e5f6g7h8.pdf"
+}
+```
+
+**Status Codes**:
+- `200 OK`: Resume uploaded successfully
+- `400 Bad Request`: Unsupported file type
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Candidate not found or is soft-deleted
+
+---
+
+#### GET `/api/candidates/{candidate_id}/applications`
+
+**Purpose**: Retrieve all job applications for a specific candidate.
+
+**Why it's needed**: Provides the candidate's profile along with all their applications in one API call.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/candidates/1/applications \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "candidate": {
+    "candidate_id": 1,
+    "name": "Alice Johnson",
+    "email": "alice@email.com",
+    "skills": "Python, FastAPI, Docker",
+    "experience_years": 5,
+    "education": "B.S. Computer Science",
+    "projects": "Built 3 production microservices",
+    "status": "shortlisted",
+    "resume_path": "uploads/resumes/a1b2.pdf"
+  },
+  "applications": [
+    {
+      "application_id": 1,
+      "candidate_id": 1,
+      "job_id": 1,
+      "status": "applied",
+      "application_date": "2026-05-18"
+    }
+  ]
+}
+```
+
+**Status Codes**:
+- `200 OK`: Applications retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+- `404 Not Found`: Candidate not found or is soft-deleted
+
+---
+
+#### GET `/api/candidates/{candidate_id}/activity`
+
+**Purpose**: Retrieve candidate activity timeline.
+
+**Why it's needed**: Aggregates all recruiting actions (application creation, status changes, notes) into a chronological feed for the candidate profile.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/candidates/1/activity \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "activities": [
+    {
+      "event_type": "note_added",
+      "entity_id": 1,
+      "description": "Note added by recruiter@hireai.com: Strong performance...",
+      "timestamp": "2026-06-15T14:30:00Z"
+    },
+    {
+      "event_type": "status_change",
+      "entity_id": 1,
+      "description": "Application #1 status updated to 'shortlisted'",
+      "timestamp": "2026-06-15T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Status Codes**:
+- `200 OK`: Timeline retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+- `404 Not Found`: Candidate not found or is soft-deleted
+
+---
+
+#### GET `/api/candidates/{candidate_id}/similar`
+
+**Purpose**: Recommend up to 5 candidates similar to the specified candidate.
+
+**Why it's needed**: Helps recruiters find other qualified candidates based on overlapping skills and experience years (within ±2 years).
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/candidates/1/similar \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "similar_candidates": [
+    {
+      "candidate_id": 2,
+      "name": "Bob Smith",
+      "email": "bob@email.com",
+      "skills": "Python, Django, React",
+      "experience_years": 4,
+      "education": "B.S. Information Technology",
+      "projects": "Created 5 full-stack web applications"
+    }
+  ]
+}
+```
+
+**Status Codes**:
+- `200 OK`: Similar candidates retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+- `404 Not Found`: Candidate not found or is soft-deleted
 
 ---
 
@@ -972,11 +1528,106 @@ X-Page-Size: <page_size>
 
 ---
 
+#### GET `/api/jobs/{job_id}`
+
+**Purpose**: Retrieve a single job listing by ID.
+
+**Why it's needed**: Displays a detailed view of a job opening. Excludes archived jobs.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/jobs/1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "job_id": 1,
+  "role": "Senior Backend Engineer",
+  "required_skills": "Python, FastAPI, PostgreSQL, Docker, AWS",
+  "min_experience": 5,
+  "status": "published",
+  "description": "Full description of responsibilities and requirements."
+}
+```
+
+**Status Codes**:
+- `200 OK`: Job retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+- `404 Not Found`: Job not found or is archived
+
+---
+
+#### PUT `/api/jobs/{job_id}`
+
+**Purpose**: Fully replace a job listing.
+
+**Why it's needed**: Updates all fields of an existing job. All fields must be supplied.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body**:
+
+```json
+{
+  "role": "Senior Backend Engineer",
+  "required_skills": "Python, FastAPI, PostgreSQL, Docker, AWS, Kubernetes",
+  "min_experience": 6,
+  "description": "Full description of responsibilities and requirements (updated)."
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X PUT http://127.0.0.1:8000/api/jobs/1 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "role": "Senior Backend Engineer",
+    "required_skills": "Python, FastAPI, PostgreSQL, Docker, AWS, Kubernetes",
+    "min_experience": 6,
+    "description": "Full description of responsibilities and requirements (updated)."
+  }'
+```
+
+**Response** (200 OK): Updated job record
+
+**Status Codes**:
+- `200 OK`: Job updated successfully
+- `400 Bad Request`: Invalid body data
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Job not found or is archived
+
+---
+
 #### PATCH `/api/jobs/{job_id}`
 
 **Purpose**: Update job fields.
 
-**Why it's needed**: Keeps job requirements current as roles evolve.
+**Why it's needed**: Keeps job requirements current as roles evolve. Only updates fields provided in the request body.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
 
 **Request Body** (partial update):
 
@@ -986,7 +1637,215 @@ X-Page-Size: <page_size>
 }
 ```
 
+**cURL Example**:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/jobs/1 \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"required_skills": "Python, FastAPI, PostgreSQL, Docker"}'
+```
+
 **Response**: Updated job record
+
+**Status Codes**:
+- `200 OK`: Job updated successfully
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Job not found or is archived
+
+---
+
+#### DELETE `/api/jobs/{job_id}`
+
+**Purpose**: Soft-delete a job listing.
+
+**Why it's needed**: Archive a job setting `is_archived = true` and `status = archived`, removing it from active queries but retaining historical references. Requires `admin` role.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl -X DELETE http://127.0.0.1:8000/api/jobs/1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "message": "Job archived successfully"
+}
+```
+
+**Status Codes**:
+- `200 OK`: Job soft-deleted successfully
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` role)
+- `404 Not Found`: Job not found or is already archived
+
+---
+
+#### PATCH `/api/jobs/{job_id}/publish`
+
+**Purpose**: Publish a draft job.
+
+**Why it's needed**: Moves a job from `draft` status to `published`, making it active for matching.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/jobs/1/publish \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK): Updated job record
+
+**Status Codes**:
+- `200 OK`: Job published successfully
+- `400 Bad Request`: Job is already published or is archived
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Job not found
+
+---
+
+#### PATCH `/api/jobs/{job_id}/archive`
+
+**Purpose**: Archive an active job listing.
+
+**Why it's needed**: Moves a job to `archived` status and sets `is_archived = true`.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/api/jobs/1/archive \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK): Updated job record
+
+**Status Codes**:
+- `200 OK`: Job archived successfully
+- `400 Bad Request`: Job is already archived
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Job not found
+
+---
+
+#### POST `/api/jobs/{job_id}/clone`
+
+**Purpose**: Clone an existing job listing into a new draft.
+
+**Why it's needed**: Speeds up posting similar roles by copying core fields into a new draft job.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/jobs/1/clone \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (201 Created): Cloned job record (status: draft)
+
+**Status Codes**:
+- `201 Created`: Job cloned successfully
+- `401 Unauthorized`: Invalid or missing token
+- `403 Forbidden`: Insufficient permissions (requires `admin` or `recruiter` role)
+- `404 Not Found`: Job not found
+
+---
+
+#### GET `/api/jobs/{job_id}/applicants`
+
+**Purpose**: Retrieve all applicants for a specific job.
+
+**Why it's needed**: Allows recruiters to view candidates who applied for this role. Supports pagination.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Query Parameters** (optional):
+- `page` (default: 1)
+- `page_size` (default: 20, max: 100)
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/jobs/1/applicants?page=1&page_size=20 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "job": {
+    "job_id": 1,
+    "role": "Senior Backend Engineer",
+    "required_skills": "Python, FastAPI, PostgreSQL, Docker, AWS",
+    "min_experience": 5,
+    "status": "published"
+  },
+  "applicants": [
+    {
+      "application_id": 1,
+      "status": "applied",
+      "application_date": "2026-05-18",
+      "candidate": {
+        "candidate_id": 1,
+        "name": "Alice Johnson",
+        "email": "alice@email.com",
+        "skills": "Python, FastAPI, Docker, PostgreSQL",
+        "experience_years": 5
+      }
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "page_size": 20
+}
+```
+
+**Response Headers**:
+
+```
+X-Total-Count: <total_records>
+X-Page: <current_page>
+X-Page-Size: <page_size>
+```
+
+**Status Codes**:
+- `200 OK`: Applicants retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+- `404 Not Found`: Job not found
 
 ---
 
@@ -1109,6 +1968,57 @@ X-Page-Size: <page_size>
 
 ---
 
+#### GET `/api/applications/{application_id}`
+
+**Purpose**: Retrieve a single application with nested candidate and job details.
+
+**Why it's needed**: Enables detailed review of a specific job application including applicant profile and job requirements.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/applications/1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "application_id": 1,
+  "candidate_id": 1,
+  "job_id": 1,
+  "status": "pending",
+  "application_date": "2026-05-18T14:30:00",
+  "candidate": {
+    "candidate_id": 1,
+    "name": "Alice Johnson",
+    "email": "alice@email.com",
+    "skills": "Python, FastAPI, Docker, PostgreSQL",
+    "experience_years": 5
+  },
+  "job": {
+    "job_id": 1,
+    "role": "Senior Backend Engineer",
+    "required_skills": "Python, FastAPI, PostgreSQL, Docker, AWS",
+    "min_experience": 5
+  }
+}
+```
+
+**Status Codes**:
+- `200 OK`: Application retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+- `404 Not Found`: Application not found
+
+---
+
 #### PATCH `/api/applications/{application_id}`
 
 **Purpose**: Update application fields.
@@ -1167,6 +2077,93 @@ X-Page-Size: <page_size>
   "updated_count": 3
 }
 ```
+
+---
+
+#### GET `/api/applications/pipeline`
+
+**Purpose**: Retrieve recruitment pipeline counts by application status.
+
+**Why it's needed**: Designed for Kanban boards and analytics dashboards. Returns counts for each stage: `applied`, `screening`, `interviewing`, `shortlisted`, `selected`, `rejected`.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/applications/pipeline \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "applied": 12,
+  "screening": 4,
+  "interviewing": 2,
+  "shortlisted": 5,
+  "selected": 1,
+  "rejected": 8
+}
+```
+
+**Status Codes**:
+- `200 OK`: Pipeline counts retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
+
+---
+
+#### GET `/api/applications/timeline`
+
+**Purpose**: Retrieve a paginated recruitment activity timeline.
+
+**Why it's needed**: Displays a feed of recent status updates across all applications, ordered by update time descending.
+
+**Request Headers**:
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Query Parameters** (optional):
+- `page` (default: 1)
+- `page_size` (default: 20, max: 100)
+
+**cURL Example**:
+
+```bash
+curl http://127.0.0.1:8000/api/applications/timeline?page=1&page_size=20 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Response** (200 OK):
+
+```json
+{
+  "events": [
+    {
+      "event_type": "status_change",
+      "application_id": 1,
+      "candidate_id": 1,
+      "job_id": 1,
+      "status": "shortlisted",
+      "timestamp": "2026-06-15T12:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "page_size": 20
+}
+```
+
+**Status Codes**:
+- `200 OK`: Timeline events retrieved successfully
+- `401 Unauthorized`: Invalid or missing token
 
 ---
 
