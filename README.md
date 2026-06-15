@@ -138,6 +138,17 @@ Middleware is live:
 - **API Documentation Pass:** Added detailed docstrings to all API endpoints, which are automatically parsed by FastAPI to provide extensive documentation in Swagger UI (`/docs`).
 >>>>>>> 679b5c1 (week 5 implementation)
 
+### Week 6 (Missing Endpoint Implementation & Enhancements)
+
+- **New Models & Schemas:** Added Enums for `CandidateStatus`, `ApplicationStatus`, and `JobStatus`. Created a new `candidate_notes` model for recruiter notes.
+- **Soft Deletes:** Introduced `is_deleted` for candidates and `is_archived` for jobs to enable soft deletions.
+- **Audit Logging:** Added `created_at`, `updated_at`, `created_by`, and `updated_by` across candidate, job, and application models.
+- **Candidate Module Updates:** Added 11 new endpoints, including `PUT/DELETE /{id}`, `PATCH /{id}/status`, `PATCH /bulk-status`, `PATCH /bulk-assign-job`, `POST /{id}/notes`, `POST /{id}/resume`, `GET /{id}/applications`, `GET /{id}/activity`, and `GET /{id}/similar`.
+- **Job Module Updates:** Added 7 new endpoints, including `PUT/DELETE /{id}`, `PATCH /{id}/publish`, `PATCH /{id}/archive`, `POST /{id}/clone`, and `GET /{id}/applicants`.
+- **Application Module Updates:** Added 3 new endpoints: `GET /{id}`, `GET /pipeline`, and `GET /timeline`.
+- **File Uploads:** Configured local static file storage for candidate resumes (`uploads/resumes`).
+- **Database Migrations:** Ensured safe database migrations across these new structural changes with Alembic `0002_enums_audit_soft_delete` migration.
+
 ---
 
 ## Setup Instructions
@@ -1304,6 +1315,67 @@ curl -i http://127.0.0.1:8000/api/jobs \
 Expected: `403` for missing token, `401` for invalid token.
 
 Note: Candidates/jobs/applications require a reachable database. If the DB is down or blocked, these endpoints will time out.
+
+### 9) Week 6 New Features Checklist
+
+**Candidate Lifecycle & Bulk Actions**
+```bash
+# Update candidate status
+curl -X PATCH http://127.0.0.1:8000/api/candidates/1/status \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "shortlisted"}'
+
+# Bulk assign candidates to a job
+curl -X PATCH http://127.0.0.1:8000/api/candidates/bulk-assign-job \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"candidate_ids": [1, 2], "job_id": 1}'
+
+# Get similar candidates
+curl http://127.0.0.1:8000/api/candidates/1/similar \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Job Workflows**
+```bash
+# Clone a job
+curl -X POST http://127.0.0.1:8000/api/jobs/1/clone \
+  -H "Authorization: Bearer <access_token>"
+
+# Publish a job
+curl -X PATCH http://127.0.0.1:8000/api/jobs/1/publish \
+  -H "Authorization: Bearer <access_token>"
+
+# Get applicants for a job
+curl http://127.0.0.1:8000/api/jobs/1/applicants \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Application Tracking**
+```bash
+# Get Kanban pipeline metrics
+curl http://127.0.0.1:8000/api/applications/pipeline \
+  -H "Authorization: Bearer <access_token>"
+
+# View timeline of recruitment events
+curl http://127.0.0.1:8000/api/applications/timeline \
+  -H "Authorization: Bearer <access_token>"
+```
+
+**Recruiter Notes & File Uploads**
+```bash
+# Add a note to a candidate
+curl -X POST http://127.0.0.1:8000/api/candidates/1/notes \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"note": "Strong performance in technical interview"}'
+
+# Upload a resume (requires form-data)
+curl -X POST http://127.0.0.1:8000/api/candidates/1/resume \
+  -H "Authorization: Bearer <access_token>" \
+  -F "file=@/path/to/resume.pdf"
+```
 
 ---
 
