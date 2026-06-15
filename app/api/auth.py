@@ -90,3 +90,17 @@ async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResp
     Requires a valid JWT bearer token in the Authorization header.
     """
     return current_user
+
+
+@router.post("/logout")
+async def logout(current_user: UserResponse = Depends(get_current_user)) -> dict[str, str]:
+    """
+    Logout the current authenticated user.
+    
+    Since JWT tokens are stateless, this endpoint returns a success response.
+    The client must discard the token locally.
+    
+    **Future scope**: Token invalidation via Redis blocklist.
+    """
+    # TODO: Add token to Redis blocklist when Redis integration is available.
+    return {"message": "Logged out successfully"}

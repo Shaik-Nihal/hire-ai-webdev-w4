@@ -25,19 +25,16 @@ if _uses_pooler(settings.DATABASE_URL):
         "prepared_statement_name_func": lambda: f"__asyncpg_{uuid4()}__",
     }
     engine_kwargs["poolclass"] = NullPool
+else:
+    engine_kwargs["pool_size"] = settings.DATABASE_POOL_SIZE
+    engine_kwargs["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
+    engine_kwargs["pool_recycle"] = settings.DATABASE_POOL_RECYCLE
+    engine_kwargs["pool_timeout"] = settings.DATABASE_POOL_TIMEOUT
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-<<<<<<< HEAD
     connect_args=connect_args,
     **engine_kwargs,
-=======
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    pool_recycle=settings.DATABASE_POOL_RECYCLE,
-    pool_timeout=settings.DATABASE_POOL_TIMEOUT,
-    pool_pre_ping=True,
->>>>>>> 679b5c1 (week 5 implementation)
 )
 
 AsyncSessionLocal = async_sessionmaker(

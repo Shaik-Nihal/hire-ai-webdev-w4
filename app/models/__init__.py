@@ -1,5 +1,5 @@
 from app.models.application import Application
 from app.models.candidate import Candidate
+from app.models.candidate_note import CandidateNote
 from app.models.job import Job
 from app.models.score import Score
-
